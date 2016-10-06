@@ -67,12 +67,8 @@ module Wesm
     end
   end
 
-  def performers_scope
-    self
-  end
-
   def get_performer(transition)
-    "#{performers_scope}::#{transition.performer.to_s.capitalize}".constantize
+    self.const_get(transition.performer.to_s.capitalize)
   end
 
   def state_field

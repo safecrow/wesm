@@ -122,33 +122,86 @@ describe Wesm do
       object.state = 'initial'
     end
 
-    it 'performs transition if all conditions pass' do
-      CustomModule.perform_transition(object, first_user, 'paid')
+    context 'when all conditions pass' do
+      it 'performs transition' do
+        CustomModule.perform_transition(object, first_user, 'paid')
+
+        expect(object.state).to eq 'paid'
+      end
+
+      it 'calls run_performer_method' do
+        transition = CustomModule.instance_eval { @transitions['initial'].first }
+
+        expect(CustomModule)
+          .to receive(:run_performer_method).with(:before_transition, object, transition)
+        expect(CustomModule)
+          .to receive(:run_performer_method).with(:after_transition, object, transition)
+
+        CustomModule.perform_transition(object, first_user, 'paid')
+      end
+
+      it 'calls persist_object method' do
+        transition = CustomModule.instance_eval { @transitions['initial'].first }
+
+        expect(CustomModule)
+          .to receive(:persist_object).with(object, transition)
+
+        CustomModule.perform_transition(object, first_user, 'paid')
+      end
     end
 
-    it 'raises access violation error if actor is invalid' do
-      expect { CustomModule.perform_transition(object, second_user, 'paid') }
-        .to raise_error(Wesm::AccessViolationError)
+    context 'when at least one condition do not pass' do
+      it 'raises access violation error if actor is invalid' do
+        expect { CustomModule.perform_transition(object, second_user, 'paid') }
+          .to raise_error(Wesm::AccessViolationError)
+      end
+
+      it 'raises access violation error if some of required fields are blank' do
+        object.stub(:payment) { nil }
+
+        expect { CustomModule.perform_transition(object, first_user, 'paid') }
+          .to raise_error(Wesm::AccessViolationError)
+      end
+
+      it 'raises access violation error if transition not found' do
+        expect { CustomModule.perform_transition(object, first_user, 'another_state') }
+          .to raise_error(Wesm::AccessViolationError)
+      end
+
+      it 'raises access violation error if constraints for object do not pass' do
+        CustomModule.transition :initial => :approved, actor: :consumer, where: { type: 'specific' }
+        object.stub(:type) { 'original' }
+
+        expect { CustomModule.perform_transition(object, first_user, 'approved') }
+          .to raise_error(Wesm::AccessViolationError)
+      end
     end
+  end
 
-    it 'raises access violation error if some of required fields are blank' do
-      object.stub(:payment) { nil }
+  describe '.run_performer_method' do
+    let(:object) { Object.new }
 
-      expect { CustomModule.perform_transition(object, first_user, 'paid') }
-        .to raise_error(Wesm::AccessViolationError)
-    end
+    it 'calls methods from defined performer for transition' do
+      module CustomModule
+        extend Wesm
 
-    it 'raises access violation error if transition not found' do
-      expect { CustomModule.perform_transition(object, first_user, 'another_state') }
-        .to raise_error(Wesm::AccessViolationError)
-    end
+        transition :initial => :paid, performer: :paying
 
-    it 'raises access violation error if constraints for object do not pass' do
-      CustomModule.transition :initial => :approved, actor: :consumer, where: { type: 'specific' }
-      object.stub(:type) { 'original' }
+        module Paying
+          def self.before_transition(object, transition)
+          end
 
-      expect { CustomModule.perform_transition(object, first_user, 'approved') }
-        .to raise_error(Wesm::AccessViolationError)
+          def self.after_transition(object, transition)
+          end
+        end
+      end
+
+      expect(CustomModule::Paying).to receive(:before_transition)
+      expect(CustomModule::Paying).to receive(:after_transition)
+
+      transition = CustomModule.instance_eval { @transitions['initial'].first }
+      CustomModule.send(:run_performer_method, :before_transition, object, transition)
+      CustomModule.send(:run_performer_method, :after_transition, object, transition)
     end
   end
 
@@ -160,7 +213,7 @@ describe Wesm do
     public_methods = %i(transition successors show_transitions required_fields
                         perform_transition)
     private_methods = %i(authorized_transitions get_transition get_transition!
-                         performers_scope get_performer state_field run_performer_method)
+                         get_performer state_field run_performer_method)
 
     expect(public_methods.all?(&-> (method) { CustomModule.methods.include?(method) }))
       .to eq true
