@@ -45,7 +45,7 @@ module Wesm
               elsif value.arity == 2
                 value.call(object.public_send(field), object)
               else
-                raise ArgumentError.new('Proc in where condition can only take 1 or 2 args')
+                raise ArgumentError.new('Proc in \'where\' condition can only take 1 or 2 args')
               end
             else
               object.public_send(field) == value
