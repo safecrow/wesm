@@ -22,7 +22,7 @@ module Wesm
 
   def required_fields(object, actor, to_state)
     transition = get_transition(object, actor, to_state)
-    transition && transition.required
+    transition && transition.required_fields
   end
 
   def perform_transition(object, actor, to_state)
@@ -60,7 +60,7 @@ module Wesm
   def get_transition!(object, actor, to_state)
     transition = get_transition(object, actor, to_state)
 
-    if transition.present? && transition.required_fields_present?(object)
+    if transition && transition.required_fields_present?(object)
       transition
     else
       raise AccessViolationError
