@@ -36,15 +36,40 @@ describe Wesm do
     end
   end
 
+  describe '.successors' do
+    it 'returns hash with next possible states based on current state, constraints and transition actor' do
+      module CustomModule
+        extend Wesm
+
+        transition :initial => :shipped, actor: :supplier, where: { type: 'first' }
+        transition :initial => :paid, actor: :consumer, where: { type: 'first' }
+        transition :initial => :pending, actor: :consumer, where: { type: 'first' }
+        transition :initial => :paid, actor: :consumer, where: { type: 'second' }
+        transition :awaits_payment => :paid, actor: :consumer, where: { type: 'first' }
+      end
+
+      first_user = Object.new
+      second_user = Object.new
+      object = Object.new
+      object.stub(:supplier) { first_user }
+      object.stub(:consumer) { second_user }
+      object.stub(:type) { 'first' }
+      object.stub(:state) { 'initial' }
+
+      expect(CustomModule.successors(object, first_user)).to eq ['shipped']
+      expect(CustomModule.successors(object, second_user)).to eq ['paid', 'pending']
+    end
+  end
+
   it 'provides methods to custom module with correct scope' do
     module CustomModule
       extend Wesm
     end
 
     public_methods = %i(transition successors show_transitions required_fields
-                        perform_transition run_performer_method)
+                        perform_transition)
     private_methods = %i(authorized_transitions get_transition get_transition!
-                         performers_scope get_performer state_field)
+                         performers_scope get_performer state_field run_performer_method)
 
     expect(public_methods.all?(&-> (method) { CustomModule.methods.include?(method) }))
       .to eq true

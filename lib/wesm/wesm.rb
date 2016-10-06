@@ -7,7 +7,7 @@ module Wesm
 
   def successors(object, actor)
     authorized_transitions(object, actor)
-      .map(&-> (transition) { transition[:to_state] })
+      .map(&-> (transition) { transition.to_state })
   end
 
   def show_transitions(object, actor)
@@ -36,6 +36,8 @@ module Wesm
     run_performer_method(:after_transition, object, transition)
   end
 
+  private
+
   def run_performer_method(method_name, object, transition)
     return unless transition.performer
 
@@ -44,8 +46,6 @@ module Wesm
     performer.public_send(method_name, object, transition) \
       if performer.respond_to?(method_name)
   end
-
-  private
 
   def authorized_transitions(object, actor)
     (@transitions[object.public_send(state_field)] || [])
