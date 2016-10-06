@@ -15,7 +15,7 @@ module Wesm
       {
         to_state: transition.to_state,
         can_perform: transition.required_fields_present?(object),
-        required_fields: transition.required
+        required_fields: transition.required_fields
       }
     end
   end

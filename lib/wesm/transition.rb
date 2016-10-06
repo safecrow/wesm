@@ -1,6 +1,6 @@
 module Wesm
   class Transition
-    attr_accessor :from_state, :to_state, :performer, :required
+    attr_accessor :from_state, :to_state, :performer, :required_fields
 
     def initialize(options)
       @from_state = options.keys.first.to_s

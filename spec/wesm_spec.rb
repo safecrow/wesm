@@ -44,7 +44,7 @@ describe Wesm do
         transition :initial => :shipped, actor: :supplier, where: { type: 'first' }
         transition :initial => :paid, actor: :consumer, where: { type: 'first' }
         transition :initial => :pending, actor: :consumer, where: { type: 'first' }
-        transition :initial => :paid, actor: :consumer, where: { type: 'second' }
+        transition :initial => :awaits_payment, actor: :consumer, where: { type: 'second' }
         transition :awaits_payment => :paid, actor: :consumer, where: { type: 'first' }
       end
 
@@ -58,6 +58,31 @@ describe Wesm do
 
       expect(CustomModule.successors(object, first_user)).to eq ['shipped']
       expect(CustomModule.successors(object, second_user)).to eq ['paid', 'pending']
+    end
+  end
+
+  describe '.show_transitions' do
+    it 'returns available transitions with additional info' do
+      module CustomModule
+        extend Wesm
+
+        transition :initial => :paid, actor: :consumer, where: { type: 'first' }, required: :payment
+        transition :initial => :approved, actor: :consumer, where: { type: 'first' }, required: :confirmation
+        transition :initial => :awaits_payment, actor: :consumer
+      end
+
+        user = Object.new
+        object = Object.new
+        object.stub(:consumer) { user }
+        object.stub(:type) { 'first' }
+        object.stub(:state) { 'initial' }
+        object.stub(:payment) { nil }
+        object.stub(:confirmation) { Object.new }
+
+        expect(CustomModule.show_transitions(object, user))
+          .to eq([{ to_state: 'paid', can_perform: false, required_fields: [:payment] },
+                  { to_state: 'approved', can_perform: true, required_fields: [:confirmation] },
+                  { to_state: 'awaits_payment', can_perform: true, required_fields: [] }])
     end
   end
 
