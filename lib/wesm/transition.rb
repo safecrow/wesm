@@ -11,6 +11,30 @@ module Wesm
       @performer = options[:performer]
     end
 
+    def permited_for?(object, actor)
+      actor_is_valid?(object, actor) && constraints_pass?(object)
+    end
+
+    def required_fields_present?(object)
+      @required_fields.each do |required_field|
+        return false if object.public_send(required_field).nil?
+      end
+      true
+    end
+
+    def to_h
+      {
+        to_state: @to_state,
+        from_state: @from_state,
+        actor: @allowed_actors,
+        where: @constraints,
+        required: @required_fields,
+        performer: @performer
+      }
+    end
+
+    private
+
     def actor_is_valid?(object, actor)
       return true unless @allowed_actors
 
@@ -19,20 +43,6 @@ module Wesm
       else
         compare_actor(@allowed_actors, object, actor)
       end
-    end
-
-    def compare_actor(allowed_actor, object, actor)
-      if allowed_actor.is_a? Class
-        allowed_actor === actor
-      elsif allowed_actor.is_a?(Symbol) || allowed_actor.is_a?(String)
-        object.public_send(allowed_actor) == actor
-      else
-        raise ArgumentError.new('Transition actor must be a kind of Class, String or Symbol')
-      end
-    end
-
-    def authorized_for?(object, actor)
-      actor_is_valid?(object, actor) && constraints_pass?(object)
     end
 
     def constraints_pass?(object)
@@ -55,22 +65,14 @@ module Wesm
       true
     end
 
-    def required_fields_present?(object)
-      @required_fields.each do |required_field|
-        return false if object.public_send(required_field).nil?
+    def compare_actor(allowed_actor, object, actor)
+      if allowed_actor.is_a? Class
+        allowed_actor === actor
+      elsif allowed_actor.is_a?(Symbol) || allowed_actor.is_a?(String)
+        object.public_send(allowed_actor) == actor
+      else
+        raise ArgumentError.new('Transition actor must be a kind of Class, String or Symbol')
       end
-      true
-    end
-
-    def to_h
-      {
-        to_state: @to_state,
-        from_state: @from_state,
-        actor: @allowed_actors,
-        where: @constraints,
-        required: @required_fields,
-        performer: @performer
-      }
     end
   end
 end

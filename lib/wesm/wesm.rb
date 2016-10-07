@@ -49,7 +49,7 @@ module Wesm
 
   def authorized_transitions(object, actor)
     (@transitions[object.public_send(state_field)] || [])
-      .reject(&-> (transition) { !transition.authorized_for?(object, actor) })
+      .reject(&-> (transition) { !transition.permited_for?(object, actor) })
   end
 
   def get_transition(object, actor, to_state)
