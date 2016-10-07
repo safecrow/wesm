@@ -215,6 +215,93 @@ describe Wesm do
     end
   end
 
+  describe '.get_transition' do
+    let(:user) { Object.new }
+    let(:object) { Object.new }
+
+    before do
+      custom_module.instance_eval do
+        transition :initial => :approved, actor: :consumer, where: { type: 'first' }
+        transition :initial => :awaits_payment, actor: :consumer
+      end
+
+      object.stub(:consumer) { user }
+      object.stub(:type) { 'first' }
+      object.stub(:state) { 'initial' }
+    end
+
+    context 'when suitable transition exists' do
+      it 'returns transition object' do
+        transition = custom_module.send(:get_transition, object, user, 'awaits_payment')
+        expected_transition = custom_module.instance_eval { @transitions['initial'][1] }
+
+        expect(transition).to eq expected_transition
+      end
+    end
+
+    context 'when suitable transition does not exists' do
+      it 'returns nil' do
+        invalid_user = Object.new
+        transition = custom_module.send(:get_transition, object, invalid_user, 'awaits_payment')
+
+        expect(transition).to be_nil
+      end
+    end
+  end
+
+  describe '.get_transition!' do
+    let(:user) { Object.new }
+    let(:object) { Object.new }
+
+    before do
+      custom_module.instance_eval do
+        transition :initial => :approved, actor: :consumer, where: { type: 'first' }
+        transition :initial => :awaits_payment, actor: :consumer
+      end
+
+      object.stub(:consumer) { user }
+      object.stub(:type) { 'first' }
+      object.stub(:state) { 'initial' }
+    end
+
+    context 'when suitable transition exists' do
+      it 'returns transition object' do
+        transition = custom_module.send(:get_transition!, object, user, 'awaits_payment')
+        expected_transition = custom_module.instance_eval { @transitions['initial'][1] }
+
+        expect(transition).to eq expected_transition
+      end
+    end
+
+    context 'when suitable transition does not exists' do
+      it 'returns nil' do
+        invalid_user = Object.new
+
+        expect { custom_module.send(:get_transition!, object, invalid_user, 'awaits_payment') }
+          .to raise_error(Wesm::AccessViolationError)
+      end
+    end
+  end
+
+  describe '.get_performer' do
+    it 'returns performer module' do
+      module CustomModule
+        extend Wesm
+
+        transition :initial => :approved, performer: :approving
+
+        module Approving; end
+      end
+
+      transition = CustomModule.instance_eval { @transitions['initial'][0] }
+      performer = CustomModule.send(:get_performer, transition)
+
+      expect(performer).to eq CustomModule::Approving
+
+      Object.send(:remove_const, :CustomModule)
+    end
+  end
+
   it 'provides methods to custom module with correct scope' do
     public_methods = %i(transition successors show_transitions required_fields
                         perform_transition)
