@@ -32,7 +32,9 @@ module OrderStateMachine
 end
 ```
 
-`OrderStateMachine.perform_transition(object, current_user, 'shipped')`  
+```ruby
+OrderStateMachine.perform_transition(object, current_user, 'shipped')
+```  
 succeeds if `object.state == 'paid'` and `object.supplier == current_user` and `object.shipping != nil`  
 
 
