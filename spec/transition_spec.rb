@@ -1,149 +1,157 @@
 require 'spec_helper'
 
 describe Wesm::Transition do
-  describe '.actor_is_valid?' do
-    let(:object) { Object.new }
-    let(:user_class) { Class.new(Object) }
-    let(:user) { user_class.new }
+  describe 'public methods' do
+    describe '.actor_is_valid?' do
+      let(:object) { Object.new }
+      let(:user_class) { Class.new(Object) }
+      let(:user) { user_class.new }
 
-    before { object.stub(:owner) { user } }
+      before { object.stub(:owner) { user } }
 
-    it 'works with single actor' do
-      transition = Wesm::Transition.new(initial: :verified, actor: :owner)
-      invalid_user = user_class.new
+      it 'works with single actor' do
+        transition = Wesm::Transition.new(initial: :verified, actor: :owner)
+        invalid_user = user_class.new
 
-      expect(transition.send(:actor_is_valid?, object, user)).to eq true
-      expect(transition.send(:actor_is_valid?, object, invalid_user)).to eq false
+        expect(transition.actor_is_valid?(object, user)).to eq true
+        expect(transition.actor_is_valid?(object, invalid_user)).to eq false
+      end
+
+      it 'works with multiple actors' do
+        transition = Wesm::Transition.new(initial: :verified, actor: [:owner, :watcher])
+        second_user = user_class.new
+        invalid_user = user_class.new
+        object.stub(:watcher) { second_user }
+
+        expect(transition.actor_is_valid?(object, user)).to eq true
+        expect(transition.actor_is_valid?(object, second_user)).to eq true
+        expect(transition.actor_is_valid?(object, invalid_user)).to eq false
+      end
     end
 
-    it 'works with multiple actors' do
-      transition = Wesm::Transition.new(initial: :verified, actor: [:owner, :watcher])
-      second_user = user_class.new
-      invalid_user = user_class.new
-      object.stub(:watcher) { second_user }
+    describe '.performable_for' do
+      let(:object) { Object.new }
+      let(:object2) { Object.new }
 
-      expect(transition.send(:actor_is_valid?, object, user)).to eq true
-      expect(transition.send(:actor_is_valid?, object, second_user)).to eq true
-      expect(transition.send(:actor_is_valid?, object, invalid_user)).to eq false
-    end
-  end
+      it 'returns true if actor is valid and required_fields are present' do
+        transition = Wesm::Transition.new(initial: :paid, actor: :supplier, required: :payment)
 
-  describe '.compare_actor' do
-    let(:object) { Object.new }
-    let(:user_class) { Class.new(Object) }
-    let(:user) { user_class.new }
+        user = Object.new
+        second_user = Object.new
 
-    before { object.stub(:owner) { user } }
+        object.stub(:supplier) { user }
+        object.stub(:payment) { Object.new }
 
-    it 'works with actor defined as Symbol' do
-      transition = Wesm::Transition.new(initial: :verified, actor: :owner)
-      invalid_user = user_class.new
+        object2.stub(:supplier) { user }
+        object2.stub(:payment) { nil }
 
-      expect(transition.send(:compare_actor, :owner, object, user)).to eq true
-      expect(transition.send(:compare_actor, :owner, object, invalid_user)).to eq false
+        expect(transition.performable_for?(object, user)).to eq true
+        expect(transition.performable_for?(object, second_user)).to eq false
+        expect(transition.performable_for?(object2, user)).to eq false
+      end
     end
 
-    it 'works with actor defined as String' do
-      transition = Wesm::Transition.new(initial: :verified, actor: 'owner')
-      invalid_user = user_class.new
+    describe '.constraints_pass?' do
+      let(:object) { Object.new }
 
-      expect(transition.send(:compare_actor, :owner, object, user)).to eq true
-      expect(transition.send(:compare_actor, :owner, object, invalid_user)).to eq false
-    end
+      it 'works with single constraint' do
+        transition = Wesm::Transition.new(initial: :verified, where: { type: 'first' })
+        object.stub(:type) { 'first' }
 
-    it 'works with actor defined as Class' do
-      transition = Wesm::Transition.new(initial: :verified, actor: user_class)
-      invalid_user = Class.new(Object).new
+        expect(transition.send(:constraints_pass?, object)).to eq true
 
-      expect(transition.send(:compare_actor, :owner, object, user)).to eq true
-      expect(transition.send(:compare_actor, :owner, object, invalid_user)).to eq false
-    end
-  end
+        object.stub(:type) { 'second' }
 
-  describe 'constraints_pass?' do
-    let(:object) { Object.new }
+        expect(transition.send(:constraints_pass?, object)).to eq false
+      end
 
-    it 'works with single constraint' do
-      transition = Wesm::Transition.new(initial: :verified, where: { type: 'first' })
-      object.stub(:type) { 'first' }
+      it 'works with multiple constraints' do
+        transition = Wesm::Transition.new(initial: :verified, where: { type: 'first', confirmed: true })
+        object.stub(:type) { 'first' }
+        object.stub(:confirmed) { true }
 
-      expect(transition.send(:constraints_pass?, object)).to eq true
+        expect(transition.send(:constraints_pass?, object)).to eq true
 
-      object.stub(:type) { 'second' }
+        object.stub(:confirmed) { false }
 
-      expect(transition.send(:constraints_pass?, object)).to eq false
-    end
+        expect(transition.send(:constraints_pass?, object)).to eq false
+      end
 
-    it 'works with multiple constraints' do
-      transition = Wesm::Transition.new(initial: :verified, where: { type: 'first', confirmed: true })
-      object.stub(:type) { 'first' }
-      object.stub(:confirmed) { true }
+      it 'works with lambdas in constraints' do
+        transition_1 = Wesm::Transition.new(initial: :verified, where: { type: -> (type) { type == 'first' } })
+        transition_2 = Wesm::Transition.new(initial: :verified, where: { type: -> (type, object) { type == object.example_field } })
+        object.stub(:type) { 'first' }
+        object.stub(:example_field) { 'first' }
 
-      expect(transition.send(:constraints_pass?, object)).to eq true
+        expect(transition_1.send(:constraints_pass?, object)).to eq true
+        expect(transition_2.send(:constraints_pass?, object)).to eq true
 
-      object.stub(:confirmed) { false }
+        object.stub(:type) { 'second' }
 
-      expect(transition.send(:constraints_pass?, object)).to eq false
-    end
-
-    it 'works with lambdas in constraints' do
-      transition_1 = Wesm::Transition.new(initial: :verified, where: { type: -> (type) { type == 'first' } })
-      transition_2 = Wesm::Transition.new(initial: :verified, where: { type: -> (type, object) { type == object.example_field } })
-      object.stub(:type) { 'first' }
-      object.stub(:example_field) { 'first' }
-
-      expect(transition_1.send(:constraints_pass?, object)).to eq true
-      expect(transition_2.send(:constraints_pass?, object)).to eq true
-
-      object.stub(:type) { 'second' }
-
-      expect(transition_1.send(:constraints_pass?, object)).to eq false
-      expect(transition_2.send(:constraints_pass?, object)).to eq false
+        expect(transition_1.send(:constraints_pass?, object)).to eq false
+        expect(transition_2.send(:constraints_pass?, object)).to eq false
+      end
     end
   end
 
-  describe 'permited_for?' do
-    let(:object) { Object.new }
-    let(:user) { Object.new }
+  describe 'private methods' do
+    describe '.compare_actor' do
+      let(:object) { Object.new }
+      let(:user_class) { Class.new(Object) }
+      let(:user) { user_class.new }
 
-    it 'returns true only if actor is valid and constraints pass' do
-      invalid_user = Object.new
-      object.stub(:owner) { user }
-      object.stub(:type) { 'first' }
+      before { object.stub(:owner) { user } }
 
-      transition_1 = Wesm::Transition.new(initial: :verified, actor: :owner, where: { type: 'first' })
-      transition_2 = Wesm::Transition.new(initial: :verified, actor: :owner, where: { type: 'second' })
+      it 'works with actor defined as Symbol' do
+        transition = Wesm::Transition.new(initial: :verified, actor: :owner)
+        invalid_user = user_class.new
 
-      expect(transition_1.permited_for?(object, user)).to eq true
-      expect(transition_1.permited_for?(object, invalid_user)).to eq false
-      expect(transition_2.permited_for?(object, user)).to eq false
+        expect(transition.send(:compare_actor, :owner, object, user)).to eq true
+        expect(transition.send(:compare_actor, :owner, object, invalid_user)).to eq false
+      end
+
+      it 'works with actor defined as String' do
+        transition = Wesm::Transition.new(initial: :verified, actor: 'owner')
+        invalid_user = user_class.new
+
+        expect(transition.send(:compare_actor, :owner, object, user)).to eq true
+        expect(transition.send(:compare_actor, :owner, object, invalid_user)).to eq false
+      end
+
+      it 'works with actor defined as Class' do
+        transition = Wesm::Transition.new(initial: :verified, actor: user_class)
+        invalid_user = Class.new(Object).new
+
+        expect(transition.send(:compare_actor, :owner, object, user)).to eq true
+        expect(transition.send(:compare_actor, :owner, object, invalid_user)).to eq false
+      end
     end
-  end
 
-  describe 'required_fields_present?' do
-    let(:object) { Object.new }
+    describe '.required_fields_present?' do
+      let(:object) { Object.new }
 
-    it 'works with single field' do
-      transition = Wesm::Transition.new(initial: :verified, required: :info)
-      object.stub(:info) { 'something' }
+      it 'works with single field' do
+        transition = Wesm::Transition.new(initial: :verified, required: :info)
+        object.stub(:info) { 'something' }
 
-      expect(transition.required_fields_present?(object)).to eq true
+        expect(transition.send(:required_fields_present?, object)).to eq true
 
-      object.stub(:info) { nil }
+        object.stub(:info) { nil }
 
-      expect(transition.required_fields_present?(object)).to eq false
-    end
+        expect(transition.send(:required_fields_present?, object)).to eq false
+      end
 
-    it 'works with multiple fields' do
-      transition = Wesm::Transition.new(initial: :verified, required: [:info, :creation_date])
-      object.stub(:info) { 'something' }
-      object.stub(:creation_date) { Time.now }
+      it 'works with multiple fields' do
+        transition = Wesm::Transition.new(initial: :verified, required: [:info, :creation_date])
+        object.stub(:info) { 'something' }
+        object.stub(:creation_date) { Time.now }
 
-      expect(transition.required_fields_present?(object)).to eq true
+        expect(transition.send(:required_fields_present?, object)).to eq true
 
-      object.stub(:info) { nil }
+        object.stub(:info) { nil }
 
-      expect(transition.required_fields_present?(object)).to eq false
+        expect(transition.send(:required_fields_present?, object)).to eq false
+      end
     end
   end
 end

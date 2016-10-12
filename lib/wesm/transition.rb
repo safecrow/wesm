@@ -11,19 +11,6 @@ module Wesm
       @performer = options[:performer]
     end
 
-    def permited_for?(object, actor)
-      actor_is_valid?(object, actor) && constraints_pass?(object)
-    end
-
-    def required_fields_present?(object)
-      @required_fields.each do |required_field|
-        return false if object.public_send(required_field).nil?
-      end
-      true
-    end
-
-    private
-
     def actor_is_valid?(object, actor)
       return true unless @allowed_actors
 
@@ -34,14 +21,8 @@ module Wesm
       end
     end
 
-    def compare_actor(allowed_actor, object, actor)
-      if allowed_actor.is_a? Class
-        allowed_actor === actor
-      elsif allowed_actor.is_a?(Symbol) || allowed_actor.is_a?(String)
-        object.public_send(allowed_actor) == actor
-      else
-        raise ArgumentError.new('Transition actor must be a kind of Class, String or Symbol')
-      end
+    def performable_for?(object, actor)
+      actor_is_valid?(object, actor) && required_fields_present?(object)
     end
 
     def constraints_pass?(object)
@@ -60,6 +41,25 @@ module Wesm
               object.public_send(field) == value
             end
           end
+      end
+      true
+    end
+
+    private
+
+    def compare_actor(allowed_actor, object, actor)
+      if allowed_actor.is_a? Class
+        allowed_actor === actor
+      elsif allowed_actor.is_a?(Symbol) || allowed_actor.is_a?(String)
+        object.public_send(allowed_actor) == actor
+      else
+        raise ArgumentError.new('Transition actor must be a kind of Class, String or Symbol')
+      end
+    end
+
+    def required_fields_present?(object)
+      @required_fields.each do |required_field|
+        return false if object.public_send(required_field).nil?
       end
       true
     end

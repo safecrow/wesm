@@ -5,23 +5,23 @@ module Wesm
     (@transitions[@transition.from_state] ||= []) << @transition.freeze
   end
 
-  def successors(object, actor)
-    authorized_transitions(object, actor)
-      .map(&-> (transition) { transition.to_state })
+  def successors(object)
+    transitions_for(object).map(&:to_state)
   end
 
   def show_transitions(object, actor)
-    authorized_transitions(object, actor).map do |transition|
+    transitions_for(object).map do |transition|
       {
         to_state: transition.to_state,
-        can_perform: transition.required_fields_present?(object),
+        is_authorized: transition.actor_is_valid?(object, actor),
+        can_perform: transition.performable_for?(object, actor),
         required_fields: transition.required_fields
       }
     end
   end
 
   def required_fields(object, actor, to_state)
-    transition = get_transition(object, actor, to_state)
+    transition = get_transition(object, to_state)
     transition && transition.required_fields
   end
 
@@ -47,20 +47,19 @@ module Wesm
       if performer.respond_to?(method_name)
   end
 
-  def authorized_transitions(object, actor)
+  def transitions_for(object)
     (@transitions[object.public_send(state_field)] || [])
-      .reject(&-> (transition) { !transition.permited_for?(object, actor) })
+      .reject { |transition| !transition.constraints_pass?(object) }
   end
 
-  def get_transition(object, actor, to_state)
-    authorized_transitions(object, actor)
-      .detect(&-> (transition) { transition.to_state == to_state })
+  def get_transition(object, to_state)
+    transitions_for(object).detect { |transition| transition.to_state == to_state }
   end
 
   def get_transition!(object, actor, to_state)
-    transition = get_transition(object, actor, to_state)
+    transition = get_transition(object, to_state)
 
-    if transition && transition.required_fields_present?(object)
+    if transition && transition.performable_for?(object, actor)
       transition
     else
       raise AccessViolationError
