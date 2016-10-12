@@ -24,13 +24,17 @@ Or install it yourself as:
 Extend your statemachine with `Wesm` module and define transitions with it's constraints
 
 ```ruby
-module OrderStatemachine
+module OrderStateMachine
   extend Wesm
 
   transition :awaits_payment => :paid, actor: :consumer
   transition :paid => :shipped, actor: :supplier, required: :shipping
 end
 ```
+
+`OrderStateMachine.perform_transition(object, current_user, 'shipped')`  
+succeeds if `object.state == 'paid'` and `object.supplier == current_user` and `object.shipping != nil`  
+
 
 ## Contributing
 
