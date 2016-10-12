@@ -32,12 +32,6 @@ module OrderStateMachine
 end
 ```
 
-```ruby
-OrderStateMachine.perform_transition(object, current_user, 'shipped')
-```  
-succeeds if `object.state == 'paid'` and `object.supplier == current_user` and `object.shipping != nil`  
-
-
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/arthurweisz/wesm.
