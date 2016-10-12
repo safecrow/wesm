@@ -21,7 +21,16 @@ Or install it yourself as:
 
 ## Usage
 
-Coming soon
+Extend your statemachine with `Wesm` module and define transitions with it's constraints
+
+```ruby
+module OrderStatemachine
+  extend Wesm
+
+  transition :awaits_payment => :paid, actor: :consumer
+  transition :paid => :shipped, actor: :supplier, required: :shipping
+end
+```
 
 ## Contributing
 
