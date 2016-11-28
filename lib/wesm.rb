@@ -1,4 +1,5 @@
 require 'wesm/transition'
+require 'wesm/helpers/transitions_helper'
 require 'wesm/errors'
 require 'wesm/version'
 require 'wesm/wesm'
