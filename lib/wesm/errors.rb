@@ -1,5 +1,6 @@
 module Wesm
-  class AccessViolationError < StandardError; end
-  class UnexpectedTransitionError < StandardError; end
-  class TransitionRequirementError < StandardError; end
+  class BaseError < StandardError; end
+  class AccessViolationError < BaseError; end
+  class UnexpectedTransitionError < BaseError; end
+  class TransitionRequirementError < BaseError; end
 end
