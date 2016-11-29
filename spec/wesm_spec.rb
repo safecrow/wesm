@@ -86,9 +86,9 @@ describe Wesm do
         object.stub(:consumer) { user }
         object.stub(:state) { 'initial' }
 
-        expect(custom_module.required_fields(object, user, 'paid'))
+        expect(custom_module.required_fields(object, 'paid'))
           .to eq [:payment, :anything]
-        expect(custom_module.required_fields(object, user, 'not_valid_next_state'))
+        expect(custom_module.required_fields(object, 'not_valid_next_state'))
           .to eq nil
       end
     end

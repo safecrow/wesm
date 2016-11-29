@@ -20,7 +20,7 @@ module Wesm
     end
   end
 
-  def required_fields(object, actor, to_state)
+  def required_fields(object, to_state)
     transition = get_transition(object, to_state)
     transition && transition.required_fields
   end
