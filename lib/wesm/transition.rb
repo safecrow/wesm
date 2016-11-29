@@ -21,8 +21,11 @@ module Wesm
       end
     end
 
-    def performable_for?(object, actor)
-      actor_is_valid?(object, actor) && required_fields_present?(object)
+    def required_fields_present?(object)
+      @required_fields.each do |required_field|
+        return false if object.public_send(required_field).nil?
+      end
+      true
     end
 
     def constraints_pass?(object)
@@ -55,13 +58,6 @@ module Wesm
       else
         raise ArgumentError.new('Transition actor must be a kind of Class, String or Symbol')
       end
-    end
-
-    def required_fields_present?(object)
-      @required_fields.each do |required_field|
-        return false if object.public_send(required_field).nil?
-      end
-      true
     end
   end
 end

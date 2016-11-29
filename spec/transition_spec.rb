@@ -29,25 +29,30 @@ describe Wesm::Transition do
       end
     end
 
-    describe '.performable_for' do
+    describe '.required_fields_present?' do
       let(:object) { Object.new }
-      let(:object2) { Object.new }
 
-      it 'returns true if actor is valid and required_fields are present' do
-        transition = Wesm::Transition.new(initial: :paid, actor: :supplier, required: :payment)
+      it 'works with single field' do
+        transition = Wesm::Transition.new(initial: :verified, required: :info)
+        object.stub(:info) { 'something' }
 
-        user = Object.new
-        second_user = Object.new
+        expect(transition.required_fields_present?(object)).to eq true
 
-        object.stub(:supplier) { user }
-        object.stub(:payment) { Object.new }
+        object.stub(:info) { nil }
 
-        object2.stub(:supplier) { user }
-        object2.stub(:payment) { nil }
+        expect(transition.required_fields_present?(object)).to eq false
+      end
 
-        expect(transition.performable_for?(object, user)).to eq true
-        expect(transition.performable_for?(object, second_user)).to eq false
-        expect(transition.performable_for?(object2, user)).to eq false
+      it 'works with multiple fields' do
+        transition = Wesm::Transition.new(initial: :verified, required: [:info, :creation_date])
+        object.stub(:info) { 'something' }
+        object.stub(:creation_date) { Time.now }
+
+        expect(transition.required_fields_present?(object)).to eq true
+
+        object.stub(:info) { nil }
+
+        expect(transition.required_fields_present?(object)).to eq false
       end
     end
 
@@ -124,33 +129,6 @@ describe Wesm::Transition do
 
         expect(transition.send(:compare_actor, :owner, object, user)).to eq true
         expect(transition.send(:compare_actor, :owner, object, invalid_user)).to eq false
-      end
-    end
-
-    describe '.required_fields_present?' do
-      let(:object) { Object.new }
-
-      it 'works with single field' do
-        transition = Wesm::Transition.new(initial: :verified, required: :info)
-        object.stub(:info) { 'something' }
-
-        expect(transition.send(:required_fields_present?, object)).to eq true
-
-        object.stub(:info) { nil }
-
-        expect(transition.send(:required_fields_present?, object)).to eq false
-      end
-
-      it 'works with multiple fields' do
-        transition = Wesm::Transition.new(initial: :verified, required: [:info, :creation_date])
-        object.stub(:info) { 'something' }
-        object.stub(:creation_date) { Time.now }
-
-        expect(transition.send(:required_fields_present?, object)).to eq true
-
-        object.stub(:info) { nil }
-
-        expect(transition.send(:required_fields_present?, object)).to eq false
       end
     end
   end

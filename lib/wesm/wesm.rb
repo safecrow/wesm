@@ -11,10 +11,12 @@ module Wesm
 
   def show_transitions(object, actor)
     transitions_for(object).map do |transition|
+      is_authorized = transition.actor_is_valid?(object, actor)
+
       {
         to_state: transition.to_state,
-        is_authorized: transition.actor_is_valid?(object, actor),
-        can_perform: transition.performable_for?(object, actor),
+        is_authorized: is_authorized,
+        can_perform: is_authorized && transition.required_fields_present?(object),
         required_fields: transition.required_fields
       }
     end
@@ -59,10 +61,14 @@ module Wesm
   def get_transition!(object, actor, to_state)
     transition = get_transition(object, to_state)
 
-    if transition && transition.performable_for?(object, actor)
-      transition
-    else
+    if transition.nil?
+      raise UnexpectedTransitionError
+    elsif !transition.actor_is_valid?(object, actor)
       raise AccessViolationError
+    elsif !transition.required_fields_present?(object)
+      raise TransitionRequirementError
+    else
+      transition
     end
   end
 

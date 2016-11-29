@@ -144,12 +144,12 @@ describe Wesm do
           object.stub(:payment) { nil }
 
           expect { custom_module.perform_transition(object, first_user, 'paid') }
-            .to raise_error(Wesm::AccessViolationError)
+            .to raise_error(Wesm::TransitionRequirementError)
         end
 
         it 'raises access violation error if transition not found' do
           expect { custom_module.perform_transition(object, first_user, 'another_state') }
-            .to raise_error(Wesm::AccessViolationError)
+            .to raise_error(Wesm::UnexpectedTransitionError)
         end
 
         it 'raises access violation error if constraints for object do not pass' do
@@ -157,7 +157,7 @@ describe Wesm do
           object.stub(:type) { 'original' }
 
           expect { custom_module.perform_transition(object, first_user, 'approved') }
-            .to raise_error(Wesm::AccessViolationError)
+            .to raise_error(Wesm::UnexpectedTransitionError)
         end
       end
     end
