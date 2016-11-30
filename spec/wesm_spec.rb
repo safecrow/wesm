@@ -66,7 +66,7 @@ describe Wesm do
         object.stub(:supplier) { second_user }
         object.stub(:type) { 'first' }
         object.stub(:state) { 'initial' }
-        object.stub(:payment) { nil }
+        object.stub(:payment)
         object.stub(:confirmation) { Object.new }
 
         expect(custom_module.show_transitions(object, user))
@@ -85,11 +85,18 @@ describe Wesm do
         object = Object.new
         object.stub(:consumer) { user }
         object.stub(:state) { 'initial' }
+        object.stub(:payment)
+        object.stub(:anything)
 
         expect(custom_module.required_fields(object, 'paid'))
           .to eq [:payment, :anything]
         expect(custom_module.required_fields(object, 'not_valid_next_state'))
           .to eq nil
+
+        object.stub(:payment) { Object.new }
+
+        expect(custom_module.required_fields(object, 'paid'))
+          .to eq [:anything]
       end
     end
 
@@ -141,7 +148,7 @@ describe Wesm do
         end
 
         it 'raises access violation error if some of required fields are blank' do
-          object.stub(:payment) { nil }
+          object.stub(:payment)
 
           expect { custom_module.perform_transition(object, first_user, 'paid') }
             .to raise_error(Wesm::TransitionRequirementError)

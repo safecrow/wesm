@@ -38,7 +38,7 @@ describe Wesm::Transition do
 
         expect(transition.required_fields_present?(object)).to eq true
 
-        object.stub(:info) { nil }
+        object.stub(:info)
 
         expect(transition.required_fields_present?(object)).to eq false
       end
@@ -50,7 +50,7 @@ describe Wesm::Transition do
 
         expect(transition.required_fields_present?(object)).to eq true
 
-        object.stub(:info) { nil }
+        object.stub(:info)
 
         expect(transition.required_fields_present?(object)).to eq false
       end

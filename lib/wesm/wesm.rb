@@ -24,7 +24,10 @@ module Wesm
 
   def required_fields(object, to_state)
     transition = get_transition(object, to_state)
-    transition && transition.required_fields
+    transition && \
+      (transition.required_fields || []).select do |field|
+        object.public_send(field).nil?
+      end
   end
 
   def perform_transition(object, actor, to_state)
