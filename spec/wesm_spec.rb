@@ -178,8 +178,6 @@ describe Wesm do
         module CustomModule
           extend Wesm
 
-          transition :initial => :paid, performer: :paying
-
           module Paying
             def self.before_transition(object, transition)
             end
@@ -187,6 +185,8 @@ describe Wesm do
             def self.after_transition(object, transition)
             end
           end
+
+          transition :initial => :paid, performer: 'CustomModule::Paying'
         end
 
         expect(CustomModule::Paying).to receive(:before_transition)
@@ -297,7 +297,7 @@ describe Wesm do
         module CustomModule
           extend Wesm
 
-          transition :initial => :approved, performer: :approving
+          transition :initial => :approved, performer: 'Approving'
 
           module Approving; end
         end

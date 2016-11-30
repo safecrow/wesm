@@ -73,7 +73,7 @@ module Wesm
   end
 
   def get_performer(transition)
-    self.const_get(transition.performer.to_s.capitalize)
+    self.const_get(transition.performer)
   end
 
   def state_field
