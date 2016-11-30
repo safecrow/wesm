@@ -17,17 +17,14 @@ module Wesm
         to_state: transition.to_state,
         is_authorized: is_authorized,
         can_perform: is_authorized && transition.required_fields_present?(object),
-        required_fields: transition.required_fields
+        required_fields: transition.required_fields_for(object)
       }
     end
   end
 
   def required_fields(object, to_state)
     transition = get_transition(object, to_state)
-    transition && \
-      (transition.required_fields || []).select do |field|
-        object.public_send(field).nil?
-      end
+    transition && transition.required_fields_for(object)
   end
 
   def perform_transition(object, actor, to_state)

@@ -71,7 +71,7 @@ describe Wesm do
 
         expect(custom_module.show_transitions(object, user))
           .to eq([{ to_state: 'paid', is_authorized: true, can_perform: false, required_fields: [:payment] },
-                  { to_state: 'approved', is_authorized:true, can_perform: true, required_fields: [:confirmation] },
+                  { to_state: 'approved', is_authorized:true, can_perform: true, required_fields: [] },
                   { to_state: 'awaits_payment', is_authorized: true, can_perform: true, required_fields: [] },
                   { to_state: 'shipped', is_authorized: false, can_perform: false, required_fields: [] }])
       end

@@ -29,6 +29,25 @@ describe Wesm::Transition do
       end
     end
 
+    describe '.required_fields_for' do
+      let(:object) { Object.new }
+
+      it 'shows empty required fields for object' do
+        transition = Wesm::Transition.new(initial: :verified, required: [:info, :agreement])
+        transition2 = Wesm::Transition.new(initial: :done)
+
+        object.stub(:info)
+        object.stub(:agreement)
+
+        expect(transition.required_fields_for(object)).to eq [:info, :agreement]
+
+        object.stub(:agreement) { 'value' }
+
+        expect(transition.required_fields_for(object)).to eq [:info]
+        expect(transition2.required_fields_for(object)).to eq []
+      end
+    end
+
     describe '.required_fields_present?' do
       let(:object) { Object.new }
 

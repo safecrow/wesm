@@ -21,6 +21,12 @@ module Wesm
       end
     end
 
+    def required_fields_for(object)
+      (@required_fields || []).select do |field|
+        object.public_send(field).nil?
+      end
+    end
+
     def required_fields_present?(object)
       @required_fields.each do |required_field|
         return false if object.public_send(required_field).nil?
