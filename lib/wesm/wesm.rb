@@ -30,12 +30,11 @@ module Wesm
   def perform_transition(object, actor, to_state)
     transition = get_transition!(object, actor, to_state)
 
-    run_performer_method(:before_transition, object, transition)
+    process_transition(object, actor, transition)
+  end
 
-    object.public_send("#{state_field}=", to_state)
-    persist_object(object, transition) if respond_to?(:persist_object)
-
-    run_performer_method(:after_transition, object, transition)
+  def process_transition(object, actor, transition)
+    object.public_send("#{state_field}=", transition.to_state)
   end
 
   private

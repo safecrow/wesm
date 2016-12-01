@@ -121,21 +121,10 @@ describe Wesm do
           expect(object.state).to eq 'paid'
         end
 
-        it 'calls run_performer_method' do
+        it 'calls process_transition method' do
           transition = custom_module.instance_eval { @transitions['initial'].first }
 
-          expect(custom_module)
-            .to receive(:run_performer_method).with(:before_transition, object, transition)
-          expect(custom_module)
-            .to receive(:run_performer_method).with(:after_transition, object, transition)
-
-          custom_module.perform_transition(object, first_user, 'paid')
-        end
-
-        it 'calls persist_object method' do
-          transition = custom_module.instance_eval { @transitions['initial'].first }
-
-          expect(custom_module).to receive(:persist_object).with(object, transition)
+          expect(custom_module).to receive(:process_transition).with(object, first_user, transition)
 
           custom_module.perform_transition(object, first_user, 'paid')
         end
