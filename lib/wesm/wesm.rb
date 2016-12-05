@@ -39,12 +39,12 @@ module Wesm
 
   private
 
-  def run_performer_method(method_name, object, transition)
+  def run_performer_method(method_name, object, transition, *args)
     return unless transition.performer
 
     performer = get_performer(transition)
 
-    performer.public_send(method_name, object, transition) \
+    performer.public_send(method_name, object, transition, *args) \
       if performer.respond_to?(method_name)
   end
 
