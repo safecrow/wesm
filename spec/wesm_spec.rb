@@ -282,7 +282,7 @@ describe Wesm do
     end
 
     describe '.get_performer' do
-      it 'returns performer module' do
+      it 'returns performer' do
         module CustomModule
           extend Wesm
 
@@ -295,6 +295,29 @@ describe Wesm do
         performer = CustomModule.send(:get_performer, transition)
 
         expect(performer).to eq CustomModule::Approving
+
+        Object.send(:remove_const, :CustomModule)
+      end
+
+      it 'returns performer using scope' do
+        module CustomModule
+          extend Wesm
+
+          transition :initial => :approved, performer: 'Approving'
+
+          module InnerModule
+            module Approving; end
+          end
+
+          def self.performers_scope
+            'CustomModule::InnerModule'
+          end
+        end
+
+        transition = CustomModule.instance_eval { @transitions['initial'][0] }
+        performer = CustomModule.send(:get_performer, transition)
+
+        expect(performer).to eq CustomModule::InnerModule::Approving
 
         Object.send(:remove_const, :CustomModule)
       end

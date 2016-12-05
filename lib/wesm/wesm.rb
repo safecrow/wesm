@@ -72,7 +72,9 @@ module Wesm
   end
 
   def get_performer(transition)
-    self.const_get(transition.performer)
+    performer = transition.performer
+    performer = "#{performers_scope}::#{performer}" if respond_to?(:performers_scope)
+    self.const_get(performer)
   end
 
   def state_field
