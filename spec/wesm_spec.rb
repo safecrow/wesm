@@ -124,7 +124,7 @@ describe Wesm do
         it 'calls process_transition method' do
           transition = custom_module.instance_eval { @transitions['initial'].first }
 
-          expect(custom_module).to receive(:process_transition).with(object, first_user, transition)
+          expect(custom_module).to receive(:process_transition).with(object, first_user, transition, {})
 
           custom_module.perform_transition(object, first_user, 'paid')
         end

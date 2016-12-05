@@ -6,7 +6,7 @@ module Wesm
   end
 
   def successors(object)
-    transitions_for(object).map(&:to_state)
+    transitions_for(object).map(&:to_state).uniq
   end
 
   def show_transitions(object, actor)
@@ -27,13 +27,13 @@ module Wesm
     transition && transition.required_fields_for(object)
   end
 
-  def perform_transition(object, actor, to_state)
+  def perform_transition(object, actor, to_state, options = {})
     transition = get_transition!(object, actor, to_state)
 
-    process_transition(object, actor, transition)
+    process_transition(object, actor, transition, options)
   end
 
-  def process_transition(object, actor, transition)
+  def process_transition(object, actor, transition, options)
     object.public_send("#{state_field}=", transition.to_state)
   end
 
