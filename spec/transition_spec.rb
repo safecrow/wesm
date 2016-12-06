@@ -127,7 +127,7 @@ describe Wesm::Transition do
       before { object.stub(:owner) { user } }
 
       it 'works with actor defined as Symbol' do
-        transition = Wesm::Transition.new(initial: :verified, actor: :owner)
+        transition = Wesm::Transition.new(initial: :verified)
         invalid_user = user_class.new
 
         expect(transition.send(:compare_actor, :owner, object, user)).to eq true
@@ -135,19 +135,25 @@ describe Wesm::Transition do
       end
 
       it 'works with actor defined as String' do
-        transition = Wesm::Transition.new(initial: :verified, actor: 'owner')
+        transition = Wesm::Transition.new(initial: :verified)
         invalid_user = user_class.new
 
-        expect(transition.send(:compare_actor, :owner, object, user)).to eq true
-        expect(transition.send(:compare_actor, :owner, object, invalid_user)).to eq false
+        expect(transition.send(:compare_actor, 'owner', object, user)).to eq true
+        expect(transition.send(:compare_actor, 'owner', object, invalid_user)).to eq false
       end
 
       it 'works with actor defined as Class' do
-        transition = Wesm::Transition.new(initial: :verified, actor: user_class)
+        transition = Wesm::Transition.new(initial: :verified)
         invalid_user = Class.new(Object).new
 
-        expect(transition.send(:compare_actor, :owner, object, user)).to eq true
-        expect(transition.send(:compare_actor, :owner, object, invalid_user)).to eq false
+        expect(transition.send(:compare_actor, user_class, object, user)).to eq true
+        expect(transition.send(:compare_actor, user_class, object, invalid_user)).to eq false
+      end
+
+      it 'works if actor is a class itself' do
+        transition = Wesm::Transition.new(initial: :verified)
+
+        expect(transition.send(:compare_actor, user_class, object, user_class)).to eq true
       end
     end
   end

@@ -58,7 +58,11 @@ module Wesm
 
     def compare_actor(allowed_actor, object, actor)
       if allowed_actor.is_a? Class
-        actor.is_a?(allowed_actor)
+        if actor.is_a? Class
+          actor == allowed_actor
+        else
+          actor.is_a?(allowed_actor)
+        end
       elsif allowed_actor.is_a?(Symbol) || allowed_actor.is_a?(String)
         object.public_send(allowed_actor) == actor
       else
