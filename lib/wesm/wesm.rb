@@ -44,7 +44,7 @@ module Wesm
 
     performer = get_performer(transition)
 
-    performer.public_send(method_name, object, transition, *args) \
+    performer.public_send(method_name, object, *args) \
       if performer.respond_to?(method_name)
   end
 
