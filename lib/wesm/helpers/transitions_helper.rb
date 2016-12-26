@@ -13,8 +13,8 @@ module Wesm
         self.class.state_machine.required_fields(self, to_state)
       end
 
-      def perform_transition(actor, to_state, options = {})
-        self.class.state_machine.perform_transition(self, actor, to_state, options)
+      def perform_transition(to_state, actor, *extras)
+        self.class.state_machine.perform_transition(self, to_state, actor, *extras)
       end
     end
   end

@@ -27,24 +27,24 @@ module Wesm
     transition && transition.required_fields_for(object)
   end
 
-  def perform_transition(object, actor, to_state, options = {})
-    transition = get_transition!(object, actor, to_state)
+  def perform_transition(object, to_state, actor, *extras)
+    transition = get_transition!(object, to_state, actor)
 
-    process_transition(object, actor, transition, options)
+    process_transition(object, transition, actor, *extras)
   end
 
-  def process_transition(object, actor, transition, options)
+  def process_transition(object, transition, actor, *extras)
     object.public_send("#{state_field}=", transition.to_state)
   end
 
   private
 
-  def run_performer_method(method_name, object, transition, *args)
+  def run_performer_method(method_name, object, transition, *extras)
     return unless transition.performer
 
     performer = get_performer(transition)
 
-    performer.public_send(method_name, object, *args) \
+    performer.public_send(method_name, object, *extras) \
       if performer.respond_to?(method_name)
   end
 
@@ -57,7 +57,7 @@ module Wesm
     transitions_for(object).detect { |transition| transition.to_state == to_state }
   end
 
-  def get_transition!(object, actor, to_state)
+  def get_transition!(object, to_state, actor)
     transition = get_transition(object, to_state)
 
     if transition.nil?

@@ -1,17 +1,17 @@
 require 'spec_helper'
 
 describe Wesm do
-  let(:custom_module) { WesmHelper.module_with_wesm }
+  let(:custom_class) { WesmHelper.class_with_wesm }
 
   describe 'public methods' do
     describe '.transition' do
       it 'adds instance of Transition class to transitions hash' do
-        custom_module.instance_eval do
+        custom_class.instance_eval do
           transition :pending => :approved, performer: :approving, actor: :owner,
                                             where: { type: 'any' }, required: :something
         end
 
-        transitions = custom_module.instance_eval do @transitions end
+        transitions = custom_class.instance_eval do @transitions end
 
         expect(transitions.keys.first).to eq 'pending'
         expect(transitions['pending'].class).to eq Array
@@ -33,7 +33,7 @@ describe Wesm do
 
     describe '.successors' do
       it 'returns hash with next possible states based on object\'s current state and constraints' do
-        custom_module.instance_eval do
+        custom_class.instance_eval do
           transition :initial => :shipped, where: { type: 'first' }
           transition :initial => :paid, where: { type: 'first' }
           transition :initial => :pending, where: { type: 'first' }
@@ -45,13 +45,13 @@ describe Wesm do
         object.stub(:type) { 'first' }
         object.stub(:state) { 'initial' }
 
-        expect(custom_module.successors(object)).to eq(%w(shipped paid pending))
+        expect(custom_class.successors(object)).to eq(%w(shipped paid pending))
       end
     end
 
     describe '.show_transitions' do
       it 'returns available transitions with additional info' do
-        custom_module.instance_eval do
+        custom_class.instance_eval do
           transition :initial => :paid, actor: :consumer, where: { type: 'first' }, required: :payment
           transition :initial => :approved, actor: :consumer, where: { type: 'first' }, required: :confirmation
           transition :initial => :awaits_payment, actor: :consumer
@@ -69,7 +69,7 @@ describe Wesm do
         object.stub(:payment)
         object.stub(:confirmation) { Object.new }
 
-        expect(custom_module.show_transitions(object, user))
+        expect(custom_class.show_transitions(object, user))
           .to eq([{ to_state: 'paid', is_authorized: true, can_perform: false, required_fields: [:payment] },
                   { to_state: 'approved', is_authorized:true, can_perform: true, required_fields: [] },
                   { to_state: 'awaits_payment', is_authorized: true, can_perform: true, required_fields: [] },
@@ -79,7 +79,7 @@ describe Wesm do
 
     describe '.required_fields' do
       it 'returns required_fields if transition is present, else returns nil' do
-        custom_module.transition :initial => :paid, actor: :consumer, required: [:payment, :anything]
+        custom_class.transition :initial => :paid, actor: :consumer, required: [:payment, :anything]
 
         user = Object.new
         object = Object.new
@@ -88,14 +88,14 @@ describe Wesm do
         object.stub(:payment)
         object.stub(:anything)
 
-        expect(custom_module.required_fields(object, 'paid'))
+        expect(custom_class.required_fields(object, 'paid'))
           .to eq [:payment, :anything]
-        expect(custom_module.required_fields(object, 'not_valid_next_state'))
+        expect(custom_class.required_fields(object, 'not_valid_next_state'))
           .to eq nil
 
         object.stub(:payment) { Object.new }
 
-        expect(custom_module.required_fields(object, 'paid'))
+        expect(custom_class.required_fields(object, 'paid'))
           .to eq [:anything]
       end
     end
@@ -106,7 +106,7 @@ describe Wesm do
       let(:second_user) { Object.new }
 
       before do
-        custom_module.transition :initial => :paid, actor: :consumer, required: :payment
+        custom_class.transition :initial => :paid, actor: :consumer, required: :payment
 
         object.stub(:consumer) { first_user }
         object.stub(:supplier) { second_user }
@@ -116,45 +116,61 @@ describe Wesm do
 
       context 'when all conditions pass' do
         it 'performs transition' do
-          custom_module.perform_transition(object, first_user, 'paid')
+          custom_class.perform_transition(object, 'paid', first_user)
 
           expect(object.state).to eq 'paid'
         end
 
         it 'calls process_transition method' do
-          transition = custom_module.instance_eval { @transitions['initial'].first }
+          transition = custom_class.instance_eval { @transitions['initial'].first }
 
-          expect(custom_module).to receive(:process_transition).with(object, first_user, transition, {})
+          expect(custom_class).to receive(:process_transition).with(object, transition, first_user)
 
-          custom_module.perform_transition(object, first_user, 'paid')
+          custom_class.perform_transition(object, 'paid', first_user)
         end
       end
 
       context 'when at least one condition do not pass' do
         it 'raises access violation error if actor is invalid' do
-          expect { custom_module.perform_transition(object, second_user, 'paid') }
+          expect { custom_class.perform_transition(object, 'paid', second_user) }
             .to raise_error(Wesm::AccessViolationError)
         end
 
         it 'raises access violation error if some of required fields are blank' do
           object.stub(:payment)
 
-          expect { custom_module.perform_transition(object, first_user, 'paid') }
+          expect { custom_class.perform_transition(object, 'paid', first_user) }
             .to raise_error(Wesm::TransitionRequirementError)
         end
 
         it 'raises access violation error if transition not found' do
-          expect { custom_module.perform_transition(object, first_user, 'another_state') }
+          expect { custom_class.perform_transition(object, 'another_state', first_user) }
             .to raise_error(Wesm::UnexpectedTransitionError)
         end
 
         it 'raises access violation error if constraints for object do not pass' do
-          custom_module.transition :initial => :approved, actor: :consumer, where: { type: 'specific' }
+          custom_class.transition :initial => :approved, actor: :consumer, where: { type: 'specific' }
           object.stub(:type) { 'original' }
 
-          expect { custom_module.perform_transition(object, first_user, 'approved') }
+          expect { custom_class.perform_transition(object, 'approved', first_user) }
             .to raise_error(Wesm::UnexpectedTransitionError)
         end
+      end
+
+      it 'can be used with multiple extra arguments' do
+        custom_class.class_eval do
+          transition :initial => :paid, actor: :consumer
+        end
+
+        transition = custom_class.instance_eval { @transitions['initial'].first }
+
+        object.stub(:consumer) { first_user }
+        object.state = 'initial'
+
+        expect(custom_class).to \
+          receive(:process_transition).with(object, transition, first_user, 1, 2, 3)
+
+        custom_class.perform_transition(object, 'paid', first_user, 1, 2, 3)
       end
     end
   end
@@ -191,7 +207,7 @@ describe Wesm do
 
     describe '.transitions_for' do
       it 'returns allowed transitions based on object state and constraints' do
-        custom_module.instance_eval do
+        custom_class.instance_eval do
           transition :initial => :shipped, actor: :supplier, where: { type: 'first' }
           transition :initial => :paid, actor: :consumer, where: { type: 'first' }
           transition :initial => :pending, actor: :consumer, where: { type: 'first' }
@@ -199,7 +215,7 @@ describe Wesm do
           transition :awaits_payment => :paid, actor: :consumer, where: { type: 'first' }
         end
 
-        transitions = custom_module.instance_eval do @transitions['initial'] end
+        transitions = custom_class.instance_eval do @transitions['initial'] end
 
         first_user = Object.new
         second_user = Object.new
@@ -209,7 +225,7 @@ describe Wesm do
         object.stub(:type) { 'first' }
         object.stub(:state) { 'initial' }
 
-        expect(custom_module.send(:transitions_for, object))
+        expect(custom_class.send(:transitions_for, object))
           .to eq([transitions[0], transitions[1], transitions[2]])
       end
     end
@@ -219,7 +235,7 @@ describe Wesm do
       let(:object) { Object.new }
 
       before do
-        custom_module.instance_eval do
+        custom_class.instance_eval do
           transition :initial => :approved, actor: :consumer, where: { type: 'first' }
           transition :initial => :awaits_payment, actor: :consumer
         end
@@ -231,8 +247,8 @@ describe Wesm do
 
       context 'when suitable transition exists' do
         it 'returns transition object' do
-          transition = custom_module.send(:get_transition, object, 'awaits_payment')
-          expected_transition = custom_module.instance_eval { @transitions['initial'][1] }
+          transition = custom_class.send(:get_transition, object, 'awaits_payment')
+          expected_transition = custom_class.instance_eval { @transitions['initial'][1] }
 
           expect(transition).to eq expected_transition
         end
@@ -240,7 +256,7 @@ describe Wesm do
 
       context 'when suitable transition does not exists' do
         it 'returns nil' do
-          transition = custom_module.send(:get_transition, object, 'shipped')
+          transition = custom_class.send(:get_transition, object, 'shipped')
 
           expect(transition).to be_nil
         end
@@ -252,7 +268,7 @@ describe Wesm do
       let(:object) { Object.new }
 
       before do
-        custom_module.instance_eval do
+        custom_class.instance_eval do
           transition :initial => :approved, actor: :consumer, where: { type: 'first' }
           transition :initial => :awaits_payment, actor: :consumer
         end
@@ -264,8 +280,8 @@ describe Wesm do
 
       context 'when suitable transition exists' do
         it 'returns transition object' do
-          transition = custom_module.send(:get_transition!, object, user, 'awaits_payment')
-          expected_transition = custom_module.instance_eval { @transitions['initial'][1] }
+          transition = custom_class.send(:get_transition!, object, 'awaits_payment', user)
+          expected_transition = custom_class.instance_eval { @transitions['initial'][1] }
 
           expect(transition).to eq expected_transition
         end
@@ -275,7 +291,7 @@ describe Wesm do
         it 'returns nil' do
           invalid_user = Object.new
 
-          expect { custom_module.send(:get_transition!, object, invalid_user, 'awaits_payment') }
+          expect { custom_class.send(:get_transition!, object, 'awaits_payment', invalid_user) }
             .to raise_error(Wesm::AccessViolationError)
         end
       end
@@ -330,9 +346,9 @@ describe Wesm do
     private_methods = %i(run_performer_method transitions_for get_transition
                          get_transition! get_performer state_field)
 
-    expect(public_methods.all?(&-> (method) { custom_module.methods.include?(method) }))
+    expect(public_methods.all?(&-> (method) { custom_class.methods.include?(method) }))
       .to eq true
-    expect(private_methods.all?(&-> (method) { custom_module.private_methods.include?(method) }))
+    expect(private_methods.all?(&-> (method) { custom_class.private_methods.include?(method) }))
       .to eq true
   end
 

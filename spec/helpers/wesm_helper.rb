@@ -1,8 +1,8 @@
 module WesmHelper
   module_function
 
-  def module_with_wesm
-    Module.new do
+  def class_with_wesm
+    Class.new do
       extend Wesm
     end
   end
