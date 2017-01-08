@@ -1,7 +1,7 @@
 module Wesm
   def transition(options)
     @transitions ||= {}
-    @transition = Transition.new(options)
+    @transition = Transition.new(options, performers_scope)
     (@transitions[@transition.from_state] ||= []) << @transition.freeze
   end
 
@@ -17,14 +17,14 @@ module Wesm
         to_state: transition.to_state,
         is_authorized: is_authorized,
         can_perform: is_authorized && transition.required_fields_present?(object),
-        required_fields: transition.required_fields_for(object)
+        required_fields: transition.required_fields(object)
       }
     end
   end
 
   def required_fields(object, to_state)
     transition = get_transition(object, to_state)
-    transition && transition.required_fields_for(object)
+    transition && transition.required_fields(object)
   end
 
   def perform_transition(object, to_state, actor, *extras)
@@ -39,18 +39,9 @@ module Wesm
 
   private
 
-  def run_performer_method(method_name, object, transition, *extras)
-    return unless transition.performer
-
-    performer = get_performer(transition)
-
-    performer.public_send(method_name, object, *extras) \
-      if performer.respond_to?(method_name)
-  end
-
   def transitions_for(object)
     (@transitions[object.public_send(state_field)] || [])
-      .reject { |transition| !transition.constraints_pass?(object) }
+      .reject { |transition| !transition.valid_scope?(object) }
   end
 
   def get_transition(object, to_state)
@@ -71,11 +62,7 @@ module Wesm
     end
   end
 
-  def get_performer(transition)
-    performer = transition.performer
-    performer = "#{performers_scope}::#{performer}" if respond_to?(:performers_scope)
-    self.const_get(performer)
-  end
+  def performers_scope; end
 
   def state_field
     :state
