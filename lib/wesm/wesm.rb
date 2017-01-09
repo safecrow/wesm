@@ -1,8 +1,8 @@
 module Wesm
   def transition(options)
     @transitions ||= {}
-    @transition = Transition.new(options, performers_scope)
-    (@transitions[@transition.from_state] ||= []) << @transition.freeze
+    transition = Transition.new(options, performers_scope)
+    (@transitions[transition.from_state] ||= []) << transition.freeze
   end
 
   def successors(object)
