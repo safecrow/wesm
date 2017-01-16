@@ -114,6 +114,37 @@ describe Wesm::Transition do
         expect(transition2.valid_scope?(object)).to eq false
       end
     end
+
+    describe '.run_performer_method' do
+      context 'if performer is nil or does not respond to called method' do
+        it 'does nothing' do
+          transition = Wesm::Transition.new initial: :success
+          transition2 = Wesm::Transition.new initial: :success, performer: 'SomeClass'
+
+          expect(transition.performer).not_to receive(:call)
+          expect(transition2.performer).not_to receive(:call)
+
+          transition.run_performer_method(:call)
+          transition2.run_performer_method(:call)
+        end
+      end
+
+      context 'if performer exists and responds to called method' do
+        it 'calls method with optional arguments' do
+          class SomeClass
+            def self.call(arg1, arg2, arg3); end
+          end
+
+          transition = Wesm::Transition.new initial: :success, performer: 'SomeClass'
+
+          expect(transition.performer).to receive(:call).with(transition, :q, :w)
+
+          transition.run_performer_method(:call, transition, :q, :w)
+
+          Object.send(:remove_const, :SomeClass)
+        end
+      end
+    end
   end
 
   describe 'private methods' do

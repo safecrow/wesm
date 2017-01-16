@@ -41,6 +41,11 @@ module Wesm
       true
     end
 
+    def run_performer_method(method, *args)
+      return unless @performer && @performer.respond_to?(method)
+      @performer.public_send(method, *args)
+    end
+
     private
 
     def compare_actor(valid_actor, object, actor)
