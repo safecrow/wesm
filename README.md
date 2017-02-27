@@ -21,55 +21,67 @@ Or install it yourself as:
 
 ## Usage
 
-### Transitions
+### Specifying Transitions
 
-Extend your class with *Wesm* module and define transitions
+Extend your class with *Wesm* module and define transitions with *transition* method
 
 ```ruby
 class OrderStateMachine
   extend Wesm
 
-  transition :payment_verification => :paid, actor: Manager, performer: 'Payment'
-  transition :paid => :shipping, actor: :supplier, required: [:supplier_billing_info, :shipping]
-  transition :paid => :shipping_missed, actor: :consumer, required: :claim
-  transition :rejected => :received, scope: { active_change: nil }, actor: [:consumer, OrdersSchedulerJob]
+  transition :pending => :approved, actor: Manager
+  transition :pending => :rejected, actor: Manager, required: :reject_reason
+  transition :approved => :payment_verification, actor: :owner, required: :payment
+  transition :payment_verification => :paid, actor: StripePaymentsService
+  transition :rejected => :closed, actor: [Manager, OrdersSchedulerJob]
 end
 ```
 
-State can be changed with *perform_transition* method
+### Performing transitions
+Use *perform_transition* method to perform transition of objects's state
 
 ```ruby
 user = Manager.new
-order = Order.new(state: 'payment_verification')
+order = Order.new(state: 'pending')
 
-OrderStateMachine.perform_transition(order, user, 'paid')
+OrderStateMachine.perform_transition(order, 'approved', user)
 
 order.state
-=> "paid"
+=> "approved"
 ```
 
 *successors* method shows list of allowed subsequent states
 
 ```ruby
-order = Order.new(state: 'paid')
+order = Order.new(state: 'pending')
 
 OrderStateMachine.successors(order)
-=> ['shipping', 'shipping_missed']
+=> ['approved', 'rejected']
 ```
 
 *show_transitions* method shows list of allowed transitions for provided actor
 
 ```ruby
 user = User.new
-order = Order.new(state: 'paid', consumer: user)
+manager = Manager.new
+order = Order.new(state: 'pending', owner: user)
 
 OrderStateMachine.show_transitions(order, user)
-=> {
-     to_state: 'shipping_missed',
-     is_authorized: true,
-     can_perform: false,
-     required_fields: [:claim]
-   }
+=> []
+
+OrderStateMachine.show_transitions(order, manager)
+=> [{
+      to_state: 'approved',
+      is_authorized: true,
+      can_perform: true,
+      required_fields: []
+    },
+    {
+      to_state: 'rejected',
+      is_authorized: true,
+      can_perform: false,
+      required_fields: [:reject_reason]
+    }
 ```
 
 Transition logic should be implemented inside *process_transition* method  
@@ -81,11 +93,11 @@ ActiveRecord example with persistence:
 class OrderStateMachine
   extend Wesm
 
-  def self.process_transition(order, transition, actor)
+  def self.process_transition(object, transition, actor)
     ActiveRecord::Base.transaction do
       # any actions
-      order.state = transition.to_state
-      order.save!
+      object.state = transition.to_state
+      object.save!
     end
   end
 end
