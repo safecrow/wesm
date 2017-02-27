@@ -38,7 +38,6 @@ end
 ```
 
 ### Performing transitions
-Use *perform_transition* method to perform transition of objects's state
 
 ```ruby
 user = Manager.new
@@ -50,42 +49,9 @@ order.state
 => "approved"
 ```
 
-*successors* method shows list of allowed subsequent states
+Default implementation is just changing object's state  
 
-```ruby
-order = Order.new(state: 'pending')
-
-OrderStateMachine.successors(order)
-=> ['approved', 'rejected']
-```
-
-*show_transitions* method shows list of allowed transitions for provided actor
-
-```ruby
-user = User.new
-manager = Manager.new
-order = Order.new(state: 'pending', owner: user)
-
-OrderStateMachine.show_transitions(order, user)
-=> []
-
-OrderStateMachine.show_transitions(order, manager)
-=> [{
-      to_state: 'approved',
-      is_authorized: true,
-      can_perform: true,
-      required_fields: []
-    },
-    {
-      to_state: 'rejected',
-      is_authorized: true,
-      can_perform: false,
-      required_fields: [:reject_reason]
-    }
-```
-
-Transition logic should be implemented inside *process_transition* method  
-Default implementation is just changing object's state
+You can customize it by overriding *process_transition* method which accepts **object**, **transition**, **actor** and all extra arguments passed to *perform_transition*  
 
 ActiveRecord example with persistence:
 
@@ -102,9 +68,56 @@ class OrderStateMachine
   end
 end
 ```
-*process_transition* will accept all extra arguments passed to *perform_transition* method
 
-Default field for object's mapping is *state* and can be set by overriding *state_field*
+### Subsequent transitions information
+
+*successors* method can be used to list all possible subsequent states for transition regardless of actor and required fields
+
+```ruby
+order = Order.new(state: 'pending')
+
+OrderStateMachine.successors(order)
+=> ['approved', 'rejected']
+```
+
+*show_transitions* method shows list of allowed transitions for provided actor
+
+```ruby
+user = User.new
+manager = Manager.new
+order = Order.new(state: 'pending', owner: user)
+
+OrderStateMachine.show_transitions(order, user)
+=> [{
+      to_state: 'approved',
+      is_authorized: false,
+      can_perform: false,
+      required_fields: []
+    },
+    {
+      to_state: 'rejected',
+      is_authorized: false,
+      can_perform: false,
+      required_fields: [:reject_reason]
+    }]
+
+OrderStateMachine.show_transitions(order, manager)
+=> [{
+      to_state: 'approved',
+      is_authorized: true,
+      can_perform: true,
+      required_fields: []
+    },
+    {
+      to_state: 'rejected',
+      is_authorized: true,
+      can_perform: false,
+      required_fields: [:reject_reason]
+    }]
+```
+### State field  
+
+Default field for object's mapping is **state** and can be set by overriding *state_field*
 
 ```ruby
 class OrderStateMachine
