@@ -52,11 +52,14 @@ module Wesm
     transition = get_transition(object, to_state)
 
     if transition.nil?
-      raise UnexpectedTransitionError
+      error_desc = "from '#{object.public_send(state_field)}' to '#{to_state}'"
+      raise UnexpectedTransitionError.new(error_desc)
     elsif !transition.actor_is_valid?(object, actor)
-      raise AccessViolationError
+      error_desc = "for actor: #{actor}"
+      raise AccessViolationError.new(error_desc)
     elsif !transition.required_fields_present?(object)
-      raise TransitionRequirementError
+      error_desc = "fields: #{transition.required_fields(object).join(', ')}"
+      raise TransitionRequirementError.new(error_desc)
     else
       transition
     end
