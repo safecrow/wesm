@@ -2,13 +2,13 @@ module Wesm
   class Transition
     attr_accessor :from_state, :to_state, :performer, :required
 
-    def initialize(options, performer_scope = nil)
+    def initialize(options)
       @from_state = options.keys.first.to_s
       @to_state = options.values.first.to_s
       @valid_actors = Array(options[:actor])
       @scope = options[:scope]
       @required = Array(options[:required])
-      @performer = get_performer(options[:performer], performer_scope)
+      @performer = options[:performer]
     end
 
     def actor_is_valid?(object, actor)
@@ -61,12 +61,5 @@ module Wesm
         false
       end
     end
-
-    def get_performer(performer_name, performer_scope)
-      return unless performer_name
-
-      performer_name = "#{performer_scope}::#{performer_name}" if performer_scope
-      self.class.const_get(performer_name)
-    rescue NameError; end
   end
 end

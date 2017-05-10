@@ -1,7 +1,7 @@
 module Wesm
   def transition(options)
     @transitions ||= {}
-    transition = Transition.new(options, performers_scope)
+    transition = Transition.new(options)
     (@transitions[transition.from_state] ||= []) << transition.freeze
   end
 
@@ -64,8 +64,6 @@ module Wesm
       transition
     end
   end
-
-  def performers_scope; end
 
   def state_field
     :state

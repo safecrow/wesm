@@ -11,11 +11,7 @@ describe Wesm do
         end
 
         state_machine.class_eval do
-          def self.performers_scope
-            'Wrapper'
-          end
-
-          transition :initial => :approved, performer: 'SomeClass', actor: :owner,
+          transition :initial => :approved, performer: Wrapper::SomeClass, actor: :owner,
                                             scope: { type: 'any' }, required: :something
         end
 

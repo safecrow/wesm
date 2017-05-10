@@ -119,7 +119,7 @@ describe Wesm::Transition do
       context 'if performer is nil or does not respond to called method' do
         it 'does nothing' do
           transition = Wesm::Transition.new initial: :success
-          transition2 = Wesm::Transition.new initial: :success, performer: 'SomeClass'
+          transition2 = Wesm::Transition.new initial: :success
 
           expect(transition.performer).not_to receive(:call)
           expect(transition2.performer).not_to receive(:call)
@@ -135,7 +135,7 @@ describe Wesm::Transition do
             def self.call(arg1, arg2, arg3); end
           end
 
-          transition = Wesm::Transition.new initial: :success, performer: 'SomeClass'
+          transition = Wesm::Transition.new initial: :success, performer: SomeClass
 
           expect(transition.performer).to receive(:call).with(transition, :q, :w)
 
@@ -191,36 +191,6 @@ describe Wesm::Transition do
         transition = Wesm::Transition.new initial: :success
 
         expect(transition.send(:compare_actor, user_class, object, user_class)).to eq true
-      end
-    end
-
-    describe '.get_performer' do
-      let(:transition) { transition = Wesm::Transition.new initial: :success }
-
-      it 'returns nil if performer not defined for transition' do
-        expect(transition.send(:get_performer, nil, nil)).to eq nil
-      end
-
-      it 'returns performer constant if performer name is defined and valid' do
-        class SomeClass; end
-
-        expect(transition.send(:get_performer, 'SomeClass', nil)).to eq SomeClass
-
-        Object.send(:remove_const, :SomeClass)
-      end
-
-      it 'returns nil if performer name is defined but not valid' do
-        expect(transition.send(:get_performer, 'SomeClass', nil)).to eq nil
-      end
-
-      it 'returns performer constant if name is defined with scope' do
-        module Wrapper
-          class SomeClass; end
-        end
-
-        expect(transition.send(:get_performer, 'SomeClass', 'Wrapper')).to eq Wrapper::SomeClass
-
-        Object.send(:remove_const, :Wrapper)
       end
     end
   end
